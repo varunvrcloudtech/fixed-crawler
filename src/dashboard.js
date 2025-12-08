@@ -121,11 +121,7 @@ window.startScraping = async function() {
     document.getElementById('scrapeBtn').textContent = '⏳ Scraping...';
 
     try {
-        //const { data: { session } } = await auth.getSession();
-        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-        if (sessionErr) throw sessionErr;
-        
-        const accessToken = sessionData?.session?.access_token; // ✅ safe
+        const { data: { session } } = await auth.getSession();
 
         const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
