@@ -1,6 +1,7 @@
 import { supabase, auth } from './supabaseClient.js';
 
 // Configuration - Edge Function URL
+//const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-website`;
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-website`;
 
 // State
