@@ -119,6 +119,9 @@ window.startScraping = async function() {
     try {
         const { data: { session } } = await auth.getSession();
 
+        console.log('Making request to:', EDGE_FUNCTION_URL);
+        console.log('Session:', session);
+
         const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
             headers: {
@@ -133,7 +136,9 @@ window.startScraping = async function() {
             })
         });
 
+        console.log('Response status:', response.status);
         const result = await response.json();
+        console.log('Result:', result);
 
         document.getElementById('loading').classList.remove('active');
         document.getElementById('scrapeBtn').disabled = false;
@@ -170,9 +175,11 @@ window.startScraping = async function() {
                 source_url: url
             });
         } else {
-            displayError(`Firecrawl API error: ${response.status}`, result.error || response.statusText);
+            console.error('API Error:', result);
+            displayError(`Firecrawl API error: ${response.status}`, JSON.stringify(result.error || result));
         }
     } catch (error) {
+        console.error('Scraping error:', error);
         document.getElementById('loading').classList.remove('active');
         document.getElementById('scrapeBtn').disabled = false;
         document.getElementById('scrapeBtn').textContent = '🚀 Scrape';
