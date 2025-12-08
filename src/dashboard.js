@@ -1,8 +1,7 @@
 import { supabase, auth } from './supabaseClient.js';
 
-// Configuration - API key from environment
-const FIRECRAWL_API_KEY = import.meta.env.VITE_FIRECRAWL_API_KEY || '';
-const FIRECRAWL_API_URL = 'https://api.firecrawl.dev/v1/scrape';
+// Configuration - Edge Function URL
+const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-website`;
 
 // State
 let currentUser = null;
@@ -112,22 +111,20 @@ window.startScraping = async function() {
         return;
     }
 
-    if (!FIRECRAWL_API_KEY) {
-        alert('Firecrawl API key is not configured. Please add VITE_FIRECRAWL_API_KEY to your .env file.');
-        return;
-    }
-
     document.getElementById('loading').classList.add('active');
     document.getElementById('resultsContainer').innerHTML = '';
     document.getElementById('scrapeBtn').disabled = true;
     document.getElementById('scrapeBtn').textContent = '⏳ Scraping...';
 
     try {
-        const response = await fetch(FIRECRAWL_API_URL, {
+        const { data: { session } } = await auth.getSession();
+
+        const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
                 url: url,
@@ -282,11 +279,6 @@ window.startGeneralScraping = async function() {
         return;
     }
 
-    if (!FIRECRAWL_API_KEY) {
-        alert('Firecrawl API key is not configured. Please add VITE_FIRECRAWL_API_KEY to your .env file.');
-        return;
-    }
-
     document.getElementById('loading').classList.add('active');
     document.getElementById('resultsContainer').innerHTML = '';
     document.getElementById('generalScrapeBtn').disabled = true;
@@ -300,11 +292,14 @@ window.startGeneralScraping = async function() {
     }
 
     try {
-        const response = await fetch(FIRECRAWL_API_URL, {
+        const { data: { session } } = await auth.getSession();
+
+        const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${FIRECRAWL_API_KEY}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
                 url: url,
