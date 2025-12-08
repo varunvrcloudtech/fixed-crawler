@@ -11,7 +11,6 @@ let currentScrapeData = null;
 async function init() {
     const { session, error } = await auth.getSession();
     
-    
     if (!session) {
         // Not logged in, redirect to login
         window.location.href = '/';

@@ -25,7 +25,7 @@ Deno.serve(async (req: Request) => {
   try {
     // Get API key from environment
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-
+    
     // Debug: Log available env vars (remove in production)
     console.log("Environment check:");
     console.log("FIRECRAWL_API_KEY exists:", !!FIRECRAWL_API_KEY);
