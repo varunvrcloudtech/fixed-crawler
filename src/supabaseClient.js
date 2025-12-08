@@ -62,6 +62,7 @@ export const auth = {
   // Get current session
   async getSession() {
     const { data: { session }, error } = await supabase.auth.getSession();
+
     return { session, error };
   },
 
