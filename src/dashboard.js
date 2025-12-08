@@ -9,7 +9,7 @@ let currentScrapeData = null;
 
 // Initialize - check authentication
 async function init() {
-    const { data: { session }, error } = await auth.getSession();
+    const { session, error } = await auth.getSession();
 
     if (!session) {
         // Not logged in, redirect to login
@@ -299,7 +299,7 @@ window.startGeneralScraping = async function() {
     }
 
     try {
-        const { data: { session } } = await auth.getSession();
+        const { session } = await auth.getSession();
 
         const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',

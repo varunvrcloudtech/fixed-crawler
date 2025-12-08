@@ -43,7 +43,7 @@ function hideLoading() {
 async function checkAuth() {
     showLoading();
     try {
-        const { data: { session } } = await auth.getSession();
+        const { session } = await auth.getSession();
         if (session) {
             window.location.href = '/dashboard.html';
         }
