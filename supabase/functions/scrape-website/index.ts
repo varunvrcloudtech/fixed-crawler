@@ -4,7 +4,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, apikey",
 };
-
 const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1/scrape";
 
 interface ScrapeRequest {
