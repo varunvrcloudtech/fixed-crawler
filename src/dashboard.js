@@ -128,7 +128,8 @@ window.startScraping = async function() {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json',
-                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                //'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+                'apikey': Deno.env.get("VITE_SUPABASE_ANON_KEY")
             },
             body: JSON.stringify({
                 url: url,
