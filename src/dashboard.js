@@ -14,6 +14,7 @@ if (!key) throw new Error("Firecrawl API key is not configured...");
 async function init() {
     const { session, error } = await auth.getSession();
     
+    
     if (!session) {
         // Not logged in, redirect to login
         window.location.href = '/';
@@ -120,7 +121,11 @@ window.startScraping = async function() {
     document.getElementById('scrapeBtn').textContent = '⏳ Scraping...';
 
     try {
-        const { data: { session } } = await auth.getSession();
+        //const { data: { session } } = await auth.getSession();
+        const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr) throw sessionErr;
+        
+        const accessToken = sessionData?.session?.access_token; // ✅ safe
 
         const response = await fetch(EDGE_FUNCTION_URL, {
             method: 'POST',
