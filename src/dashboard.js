@@ -117,7 +117,7 @@ window.startScraping = async function() {
     document.getElementById('scrapeBtn').textContent = '⏳ Scraping...';
 
     try {
-        const { data: { session } } = await auth.getSession();
+        const { session } = await auth.getSession();
 
         console.log('Making request to:', EDGE_FUNCTION_URL);
         console.log('Session:', session);
