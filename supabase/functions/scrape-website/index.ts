@@ -1,64 +1,133 @@
-interface ReqPayload { url?: string }
-const MAX_BYTES = 200 * 1024; // 200 KB
-const TIMEOUT_MS = 10000;
-console.info('scrape-website function starting');
+// Follow Deno Edge Function format
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, apikey",
+};
+
+const FIRECRAWL_API_URL = "https://api.firecrawl.dev/v1/scrape";
+
+interface ScrapeRequest {
+  url: string;
+  formats?: string[];
+  onlyMainContent?: boolean;
+}
+
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    });
+  }
+
   try {
-    if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 });
-    const contentType = req.headers.get('content-type') || '';
-    let url: string | undefined;
-    if (contentType.includes('application/json')) {
-      const body: ReqPayload = await req.json().catch(() => ({}));
-      url = body.url;
-    } else {
-      const params = new URL(req.url).searchParams;
-      url = params.get('url') || undefined;
-    }
-    if (!url) return new Response(JSON.stringify({ error: 'Missing url' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
-    try { new URL(url); } catch (e) { return new Response(JSON.stringify({ error: 'Invalid url' }), { status: 400, headers: { 'Content-Type': 'application/json' } }); }
+    // Get API key from environment
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    
+    // Debug: Log available env vars (remove in production)
+    console.log("Environment check:");
+    console.log("FIRECRAWL_API_KEY exists:", !!FIRECRAWL_API_KEY);
+    console.log("FIRECRAWL_API_KEY length:", FIRECRAWL_API_KEY?.length || 0);
 
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const resp = await fetch(url, { signal: controller.signal, redirect: 'follow' }).catch((err) => { throw err; });
-    clearTimeout(id);
-
-    const headersObj: Record<string,string> = {};
-    resp.headers.forEach((v,k)=>headersObj[k]=v);
-
-    if (!resp.ok) {
-      return new Response(JSON.stringify({ url, status: resp.status, statusText: resp.statusText }), { status: 502, headers: { 'Content-Type': 'application/json' } });
-    }
-
-    const contentTypeResp = resp.headers.get('content-type') || '';
-    const reader = resp.body?.getReader();
-    if (!reader) return new Response(JSON.stringify({ error: 'No response body' }), { status: 502, headers: { 'Content-Type': 'application/json' } });
-
-    const chunks: Uint8Array[] = [];
-    let received = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      if (value) {
-        received += value.length;
-        if (received > MAX_BYTES) {
-          // truncate
-          const allowed = value.subarray(0, value.length - (received - MAX_BYTES));
-          chunks.push(allowed);
-          break;
+    if (!FIRECRAWL_API_KEY) {
+      console.error("FIRECRAWL_API_KEY is not set in environment");
+      return new Response(
+        JSON.stringify({ 
+          error: "Firecrawl API key not configured",
+          debug: "The FIRECRAWL_API_KEY secret is not available to this function"
+        }),
+        {
+          status: 500,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
         }
-        chunks.push(value);
-      }
+      );
     }
-    const combined = new Uint8Array(chunks.reduce((s, c) => s + c.length, 0));
-    let offset = 0;
-    for (const c of chunks) { combined.set(c, offset); offset += c.length; }
-    const text = new TextDecoder('utf-8', { fatal: false }).decode(combined);
 
-    const out = { url, status: resp.status, content_type: contentTypeResp, html: text };
-    return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (err) {
-    if (err.name === 'AbortError') return new Response(JSON.stringify({ error: 'Timeout' }), { status: 504, headers: { 'Content-Type': 'application/json' } });
-    console.error('scrape error', err);
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    // Parse request body
+    const body: ScrapeRequest = await req.json();
+    
+    if (!body.url) {
+      return new Response(
+        JSON.stringify({ error: "URL is required" }),
+        {
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    console.log("Scraping URL:", body.url);
+
+    // Call Firecrawl API
+    const firecrawlResponse = await fetch(FIRECRAWL_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${FIRECRAWL_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url: body.url,
+        formats: body.formats || ["markdown", "html"],
+        onlyMainContent: body.onlyMainContent ?? true,
+      }),
+    });
+
+    const firecrawlData = await firecrawlResponse.json();
+
+    console.log("Firecrawl response status:", firecrawlResponse.status);
+
+    if (!firecrawlResponse.ok) {
+      console.error("Firecrawl error:", firecrawlData);
+      return new Response(
+        JSON.stringify({ 
+          error: "Firecrawl API error", 
+          details: firecrawlData,
+          status: firecrawlResponse.status 
+        }),
+        {
+          status: firecrawlResponse.status,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+    }
+
+    // Return successful response
+    return new Response(
+      JSON.stringify(firecrawlData),
+      {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+  } catch (error) {
+    console.error("Edge function error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Internal server error", 
+        message: error.message 
+      }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   }
 });
