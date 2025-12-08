@@ -9,14 +9,14 @@ let currentScrapeData = null;
 
 // Initialize - check authentication
 async function init() {
-    const { session, error } = await auth.getSession();
-    
+    const { data: { session }, error } = await auth.getSession();
+
     if (!session) {
         // Not logged in, redirect to login
         window.location.href = '/';
         return;
     }
-    
+
     currentUser = session.user;
     updateUserDisplay();
     
