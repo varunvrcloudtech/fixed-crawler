@@ -7,6 +7,9 @@ const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scr
 let currentUser = null;
 let currentScrapeData = null;
 
+const key = import.meta.env.VITE_FIRECRAWL_API_KEY;
+if (!key) throw new Error("Firecrawl API key is not configured...");
+
 // Initialize - check authentication
 async function init() {
     const { session, error } = await auth.getSession();
