@@ -1,16 +1,11 @@
 import { supabase, auth } from './supabaseClient.js';
 
 // Configuration - Edge Function URL
-//const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-website`;
 const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/scrape-website`;
 
 // State
 let currentUser = null;
 let currentScrapeData = null;
-
-//const key = import.meta.env.VITE_FIRECRAWL_API_KEY;
-const key = Deno.env.get("VITE_FIRECRAWL_API_KEY");
-if (!key) throw new Error("Firecrawl API key is not configured...");
 
 // Initialize - check authentication
 async function init() {
@@ -130,8 +125,7 @@ window.startScraping = async function() {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json',
-                //'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-                'apikey': Deno.env.get("VITE_SUPABASE_ANON_KEY")
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
                 url: url,
@@ -306,8 +300,7 @@ window.startGeneralScraping = async function() {
             headers: {
                 'Authorization': `Bearer ${session.access_token}`,
                 'Content-Type': 'application/json',
-                //'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
-                'apikey': Deno.env.get("VITE_SUPABASE_ANON_KEY")
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
             },
             body: JSON.stringify({
                 url: url,
