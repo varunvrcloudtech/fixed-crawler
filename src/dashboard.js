@@ -403,10 +403,22 @@ window.saveToDatabase = async function() {
     }
 
     try {
+        // Get fresh session to ensure we have the correct user_id
+        const { session } = await auth.getSession();
+
+        if (!session || !session.user) {
+            alert('Session expired. Please log in again.');
+            window.location.href = '/';
+            return;
+        }
+
+        console.log('Saving with user_id:', session.user.id);
+        console.log('Scrape data:', currentScrapeData);
+
         const { data, error } = await supabase
             .from('scraped_data')
             .insert([{
-                user_id: currentUser.id,
+                user_id: session.user.id,
                 scrape_type: currentScrapeData.scrape_type,
                 url: currentScrapeData.url,
                 title: currentScrapeData.title,
