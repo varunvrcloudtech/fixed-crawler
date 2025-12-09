@@ -970,10 +970,27 @@ window.loadRealEstateWebsite = function(url) {
     currentBrowserUrl = url;
     browserUrlInput.value = url;
     iframeContainer.style.display = 'block';
-    iframeStatus.textContent = `Loading ${new URL(url).hostname}...`;
+
+    const hostname = new URL(url).hostname;
+    iframeStatus.textContent = `Loading ${hostname}...`;
+    iframeStatus.style.color = '#666';
+
+    // Set a timeout to detect if loading fails
+    let loadTimeout = setTimeout(() => {
+        iframeStatus.textContent = `⚠️ ${hostname} blocked iframe loading - This is normal for security reasons`;
+        iframeStatus.style.color = '#ff6b35';
+    }, 5000);
 
     iframe.onload = function() {
-        iframeStatus.textContent = `Browsing ${new URL(url).hostname}`;
+        clearTimeout(loadTimeout);
+        iframeStatus.textContent = `Browsing ${hostname}`;
+        iframeStatus.style.color = '#2e7d32';
+    };
+
+    iframe.onerror = function() {
+        clearTimeout(loadTimeout);
+        iframeStatus.textContent = `❌ Failed to load ${hostname} - Site blocked iframe embedding`;
+        iframeStatus.style.color = '#f44336';
     };
 };
 
