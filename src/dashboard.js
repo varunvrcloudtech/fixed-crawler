@@ -225,7 +225,8 @@ function parseRealEstateData(content, params) {
     const sqfts = [...markdown.matchAll(sqftRegex)];
 
     if (prices.length > 0 && (addresses.length > 0 || beds.length > 0)) {
-        const maxListings = Math.min(10, Math.max(prices.length, addresses.length, beds.length));
+        const RECORD_LIMIT = 10;
+        const maxListings = Math.min(RECORD_LIMIT, Math.max(prices.length, addresses.length, beds.length));
 
         for (let i = 0; i < maxListings; i++) {
             const price = prices[i] || 'Price not found';
@@ -299,9 +300,14 @@ function displayResults(result) {
 
     let html = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-            <p style="color: #666; margin: 0;">
-                <strong>Source:</strong> ${escapeHtml(result.source_url)}
-            </p>
+            <div>
+                <p style="color: #666; margin: 0 0 5px 0;">
+                    <strong>Source:</strong> ${escapeHtml(result.source_url)}
+                </p>
+                <p style="color: #ff6b35; margin: 0; font-size: 13px; font-weight: 500;">
+                    ⚠️ Limited to first 10 records only
+                </p>
+            </div>
             <div style="display: flex; gap: 10px;">
                 <button class="btn-add-choice" onclick="addCurrentToChoices()">⭐ Add to My Choices</button>
                 <button class="btn-save" onclick="saveToDatabase()">💾 Save to Database</button>
