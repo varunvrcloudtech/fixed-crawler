@@ -208,20 +208,90 @@ window.startScraping = async function() {
 function parseRealEstateData(content, params) {
     const listings = [];
     const markdown = content.markdown || '';
+    const html = content.html || '';
 
-    const listing = {
-        source: 'Scraped Data',
-        location: params.location || 'N/A',
-        property_type: params.property_type || 'N/A',
-        price_range: `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
-        distance_from: params.distance_from || 'N/A',
-        max_distance: params.max_distance || 'N/A',
-        content_preview: markdown.substring(0, 500) || 'No content extracted',
-        status: 'Scraped Successfully'
-    };
-    listings.push(listing);
+    const priceRegex = /\$\s*[\d,]+(?:\.\d{2})?/g;
+    const prices = markdown.match(priceRegex) || [];
+
+    const addressRegex = /\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Circle|Cir)[,\s]+[A-Za-z\s]+/gi;
+    const addresses = markdown.match(addressRegex) || [];
+
+    const bedsRegex = /(\d+)\s*(?:bed|bd|bedroom)s?/gi;
+    const bathsRegex = /(\d+(?:\.\d+)?)\s*(?:bath|ba|bathroom)s?/gi;
+    const sqftRegex = /(\d{1,3}(?:,\d{3})*)\s*(?:sq\s*ft|sqft|square\s*feet)/gi;
+
+    const beds = [...markdown.matchAll(bedsRegex)];
+    const baths = [...markdown.matchAll(bathsRegex)];
+    const sqfts = [...markdown.matchAll(sqftRegex)];
+
+    if (prices.length > 0 && (addresses.length > 0 || beds.length > 0)) {
+        const maxListings = Math.min(10, Math.max(prices.length, addresses.length, beds.length));
+
+        for (let i = 0; i < maxListings; i++) {
+            const price = prices[i] || 'Price not found';
+            const address = addresses[i] || params.location || 'Address not specified';
+            const bedCount = beds[i] ? beds[i][1] : 'N/A';
+            const bathCount = baths[i] ? baths[i][1] : 'N/A';
+            const sqft = sqfts[i] ? sqfts[i][1] : 'N/A';
+
+            if (shouldIncludeListing(price, params)) {
+                listings.push({
+                    source: 'Scraped Listing',
+                    location: address,
+                    property_type: params.property_type || 'Property',
+                    price_range: price,
+                    distance_from: params.distance_from || 'N/A',
+                    max_distance: params.max_distance ? `${params.max_distance} miles` : 'N/A',
+                    beds: bedCount,
+                    baths: bathCount,
+                    sqft: sqft,
+                    content_preview: `${bedCount} bed, ${bathCount} bath, ${sqft} sqft`,
+                    status: 'Extracted'
+                });
+            }
+        }
+    }
+
+    if (listings.length === 0) {
+        listings.push({
+            source: 'Scraped Data',
+            location: params.location || 'N/A',
+            property_type: params.property_type || 'N/A',
+            price_range: prices[0] || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
+            distance_from: params.distance_from || 'N/A',
+            max_distance: params.max_distance ? `${params.max_distance} miles` : 'N/A',
+            beds: 'N/A',
+            baths: 'N/A',
+            sqft: 'N/A',
+            content_preview: markdown.substring(0, 300) || 'No detailed content extracted',
+            status: 'Basic Extraction'
+        });
+    }
 
     return listings;
+}
+
+function shouldIncludeListing(priceStr, params) {
+    if (!params.min_price && !params.max_price) {
+        return true;
+    }
+
+    const priceMatch = priceStr.match(/[\d,]+/);
+    if (!priceMatch) {
+        return true;
+    }
+
+    const price = parseInt(priceMatch[0].replace(/,/g, ''));
+
+    if (params.min_price && price < parseInt(params.min_price)) {
+        return false;
+    }
+
+    if (params.max_price && price > parseInt(params.max_price)) {
+        return false;
+    }
+
+    return true;
 }
 
 function displayResults(result) {
@@ -240,11 +310,12 @@ function displayResults(result) {
         <table class="results-table">
             <thead>
                 <tr>
-                    <th>Source</th>
                     <th>Location</th>
+                    <th>Price</th>
+                    <th>Beds</th>
+                    <th>Baths</th>
+                    <th>Sqft</th>
                     <th>Type</th>
-                    <th>Price Range</th>
-                    <th>Distance From</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -254,11 +325,12 @@ function displayResults(result) {
     result.data.forEach(item => {
         html += `
             <tr>
-                <td>${escapeHtml(item.source)}</td>
                 <td>${escapeHtml(item.location)}</td>
+                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(item.price_range)}</td>
+                <td>${escapeHtml(item.beds || 'N/A')}</td>
+                <td>${escapeHtml(item.baths || 'N/A')}</td>
+                <td>${escapeHtml(item.sqft || 'N/A')}</td>
                 <td>${escapeHtml(item.property_type)}</td>
-                <td>${escapeHtml(item.price_range)}</td>
-                <td>${escapeHtml(item.distance_from)}</td>
                 <td><span class="status-success">${escapeHtml(item.status)}</span></td>
             </tr>
         `;
@@ -626,6 +698,10 @@ window.addCurrentToChoices = async function() {
 
         const listing = listings[0];
 
+        const contentPreview = listing.beds && listing.baths && listing.sqft
+            ? `${listing.beds} bed, ${listing.baths} bath, ${listing.sqft} sqft`
+            : listing.content_preview || 'No details available';
+
         const { data, error } = await supabase
             .from('real_estate_choices')
             .insert([{
@@ -635,7 +711,7 @@ window.addCurrentToChoices = async function() {
                 price_range: listing.price_range || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
                 distance_from: listing.distance_from || params.distance_from || null,
                 max_distance: listing.max_distance || params.max_distance || null,
-                content_preview: listing.content_preview || null,
+                content_preview: contentPreview,
                 source_url: currentScrapeData.url
             }])
             .select();
@@ -722,6 +798,11 @@ function displayChoices(items) {
                         <span class="choice-detail-value">${date}</span>
                     </div>
                 </div>
+                ${item.content_preview ? `
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 13px; color: #555;">
+                        <strong>Details:</strong> ${escapeHtml(item.content_preview)}
+                    </div>
+                ` : ''}
                 ${item.source_url ? `
                     <p style="font-size: 13px; color: #666; margin: 10px 0;">
                         <strong>Source:</strong> <a href="${escapeHtml(item.source_url)}" target="_blank" style="color: #0f3460;">${escapeHtml(item.source_url.substring(0, 50))}...</a>

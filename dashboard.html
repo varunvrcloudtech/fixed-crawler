@@ -33,6 +33,10 @@
                 <div id="realEstateScrapeTab" class="sub-tab-content active">
                     <h2>🔍 Scrape Real Estate Listings</h2>
 
+                    <div class="info-box" style="margin-bottom: 20px;">
+                        <strong>💡 How it works:</strong> Enter a URL from a real estate website (already filtered with your preferences), and we'll extract property details. For best results, use URLs from Zillow, Realtor.com, or Redfin with your search filters already applied.
+                    </div>
+
                     <div class="quick-links">
                         <button class="quick-link" onclick="setUrl('https://www.zillow.com/new-orleans-la/')">Zillow - New Orleans</button>
                         <button class="quick-link" onclick="setUrl('https://www.zillow.com/homes/for_rent/')">Zillow - Rentals</button>
@@ -47,7 +51,8 @@
                     </button>
                 </div>
 
-                <h3 style="margin: 20px 0 15px; color: #333; font-size: 16px;">Search Parameters</h3>
+                <h3 style="margin: 20px 0 15px; color: #333; font-size: 16px;">Optional: Add Metadata & Filter Results</h3>
+                <p style="color: #666; font-size: 13px; margin-bottom: 15px;">These parameters help organize your data and filter extracted listings by price.</p>
 
                 <div class="form-row">
                     <div class="form-group">
