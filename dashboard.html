@@ -18,83 +18,14 @@
 
     <div class="main-content">
         <div class="tabs">
-            <button class="tab-button active" onclick="switchTab('realEstateWeb')">🏘️ Real Estate Web</button>
-            <button class="tab-button" onclick="switchTab('realEstate')">🏠 Real Estate</button>
+            <button class="tab-button active" onclick="switchTab('realEstate')">🏠 Real Estate</button>
+            <button class="tab-button" onclick="switchTab('browserSearch')">🔎 Real Estate Web</button>
             <button class="tab-button" onclick="switchTab('general')">🌐 Any Website</button>
             <button class="tab-button" onclick="switchTab('history')">📚 History</button>
         </div>
 
         <div class="scraper-card">
-            <div id="realEstateWebTab" class="tab-content active">
-                <h2>🏘️ Browse & Scrape Real Estate Sites</h2>
-
-                <div class="info-box" style="margin-bottom: 20px;">
-                    <strong>💡 How it works:</strong> Use the quick links below to navigate to popular real estate sites, or enter any real estate URL. Once you have the URL with your desired filters, click "Scrape" to extract property details. <strong>Important:</strong> The scraped data will come from whatever city/location is in the URL you provide.<br><br>
-                    <strong style="color: #ff6b35;">⚠️ Note:</strong> Scraping is limited to the first 10 property records found on the page.
-                </div>
-
-                <div class="quick-links">
-                    <button class="quick-link" onclick="setWebUrl('https://www.zillow.com/new-orleans-la/')">Zillow - New Orleans</button>
-                    <button class="quick-link" onclick="setWebUrl('https://www.zillow.com/homes/for_rent/')">Zillow - Rentals</button>
-                    <button class="quick-link" onclick="setWebUrl('https://www.realtor.com/')">Realtor.com</button>
-                    <button class="quick-link" onclick="setWebUrl('https://www.redfin.com/')">Redfin</button>
-                    <button class="quick-link" onclick="setWebUrl('https://www.trulia.com/')">Trulia</button>
-                    <button class="quick-link" onclick="setWebUrl('https://www.apartments.com/')">Apartments.com</button>
-                </div>
-
-                <div class="url-input-group">
-                    <input type="url" id="webScrapeUrl" placeholder="Enter real estate URL to scrape (e.g., https://www.zillow.com/new-orleans-la/)" required>
-                    <button class="btn-scrape" id="webScrapeBtn" onclick="startWebScraping()">
-                        🚀 Scrape
-                    </button>
-                </div>
-
-                <h3 style="margin: 20px 0 15px; color: #333; font-size: 16px;">Optional: Add Metadata & Filter Results</h3>
-                <p style="color: #666; font-size: 13px; margin-bottom: 15px;">These parameters help organize your data and filter extracted listings by price.</p>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="webLocation">📍 Location (City, State)</label>
-                        <input type="text" id="webLocation" placeholder="e.g., New Orleans, LA">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="webPropertyType">🏡 Property Type</label>
-                        <select id="webPropertyType">
-                            <option value="any">Any</option>
-                            <option value="purchase">For Purchase</option>
-                            <option value="rent">For Rent</option>
-                            <option value="lease">For Lease</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="webMinPrice">💰 Min Price ($)</label>
-                        <input type="number" id="webMinPrice" placeholder="e.g., 100000">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="webMaxPrice">💰 Max Price ($)</label>
-                        <input type="number" id="webMaxPrice" placeholder="e.g., 500000">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="webDistanceFrom">📌 Distance From (Address/Place)</label>
-                        <input type="text" id="webDistanceFrom" placeholder="e.g., Downtown New Orleans">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="webMaxDistance">🚗 Max Distance (miles)</label>
-                        <input type="number" id="webMaxDistance" placeholder="e.g., 10">
-                    </div>
-                </div>
-            </div>
-
-            <div id="realEstateTab" class="tab-content">
+            <div id="realEstateTab" class="tab-content active">
                 <div class="sub-tabs">
                     <button class="sub-tab-button active" onclick="switchRealEstateSubTab('scrape')">🔍 Scrape</button>
                     <button class="sub-tab-button" onclick="switchRealEstateSubTab('choices')">My Choices</button>
@@ -174,6 +105,59 @@
                         <div class="no-results">
                             <p>No choices saved yet. Scrape real estate data and add properties to your choices!</p>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="browserSearchTab" class="tab-content">
+                <h2>🔎 Real Estate Web</h2>
+                <p style="color: #666; margin-bottom: 20px;">Browse real estate websites directly and scrape visible listings with a single click.</p>
+
+                <div class="website-selector">
+                    <label for="websiteSelect" style="font-weight: 600; color: #333; margin-bottom: 10px; display: block;">Select Real Estate Website:</label>
+                    <div class="website-buttons">
+                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.zillow.com/')">
+                            <span class="website-icon">🏘️</span>
+                            <span>Zillow</span>
+                        </button>
+                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.realtor.com/')">
+                            <span class="website-icon">🏡</span>
+                            <span>Realtor.com</span>
+                        </button>
+                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.redfin.com/')">
+                            <span class="website-icon">🏠</span>
+                            <span>Redfin</span>
+                        </button>
+                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.trulia.com/')">
+                            <span class="website-icon">🏢</span>
+                            <span>Trulia</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="browser-controls">
+                    <div class="url-display-group">
+                        <input type="text" id="browserUrl" placeholder="Enter or navigate to a real estate website URL..." readonly style="flex: 1;">
+                        <button class="btn-scrape-browser" onclick="scrapeBrowserPage()">
+                            🚀 Scrape Visible Listings
+                        </button>
+                    </div>
+                    <div class="info-box" style="margin-top: 15px;">
+                        <strong>💡 How to use:</strong> Click a website button above to open it, search for properties using your criteria (location, price, beds, etc.), then click "Scrape Visible Listings" to extract the data shown on the current page.
+                    </div>
+                </div>
+
+                <div class="iframe-container" style="display: none; margin-top: 20px;">
+                    <div class="iframe-header">
+                        <span id="iframeStatus">No website loaded</span>
+                        <button class="btn-close-iframe" onclick="closeBrowser()">✕ Close Browser</button>
+                    </div>
+                    <iframe id="realEstateIframe" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" style="width: 100%; height: 600px; border: 2px solid #e0e0e0; border-radius: 8px;"></iframe>
+                </div>
+
+                <div id="browserResultsContainer" class="browser-results-section">
+                    <div class="no-results">
+                        <p>No results yet. Browse a real estate website and click "Scrape Visible Listings" to extract data.</p>
                     </div>
                 </div>
             </div>
