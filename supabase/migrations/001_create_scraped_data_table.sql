@@ -1,5 +1,5 @@
 /*
-  # Web Scraper Database Schema with Supabase Auth
+  # AI Web Scraper Database Schema with Supabase Auth
   
   This migration creates the scraped_data table that works with Supabase Auth.
   Users are authenticated via Supabase Auth (Google OAuth, Email/Password),
