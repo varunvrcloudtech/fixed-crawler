@@ -25,14 +25,20 @@
 
         <div class="scraper-card">
             <div id="realEstateTab" class="tab-content active">
-                <h2>🔍 Scrape Real Estate Listings</h2>
-
-                <div class="quick-links">
-                    <button class="quick-link" onclick="setUrl('https://www.zillow.com/new-orleans-la/')">Zillow - New Orleans</button>
-                    <button class="quick-link" onclick="setUrl('https://www.zillow.com/homes/for_rent/')">Zillow - Rentals</button>
-                    <button class="quick-link" onclick="setUrl('https://www.realtor.com/')">Realtor.com</button>
-                    <button class="quick-link" onclick="setUrl('https://www.redfin.com/')">Redfin</button>
+                <div class="sub-tabs">
+                    <button class="sub-tab-button active" onclick="switchRealEstateSubTab('scrape')">🔍 Scrape</button>
+                    <button class="sub-tab-button" onclick="switchRealEstateSubTab('choices')">⭐ My Choices</button>
                 </div>
+
+                <div id="realEstateScrapeTab" class="sub-tab-content active">
+                    <h2>🔍 Scrape Real Estate Listings</h2>
+
+                    <div class="quick-links">
+                        <button class="quick-link" onclick="setUrl('https://www.zillow.com/new-orleans-la/')">Zillow - New Orleans</button>
+                        <button class="quick-link" onclick="setUrl('https://www.zillow.com/homes/for_rent/')">Zillow - Rentals</button>
+                        <button class="quick-link" onclick="setUrl('https://www.realtor.com/')">Realtor.com</button>
+                        <button class="quick-link" onclick="setUrl('https://www.redfin.com/')">Redfin</button>
+                    </div>
 
                 <div class="url-input-group">
                     <input type="url" id="scrapeUrl" placeholder="Enter URL to scrape (e.g., https://www.zillow.com/new-orleans-la/)" required>
@@ -81,6 +87,17 @@
                     <div class="form-group">
                         <label for="maxDistance">🚗 Max Distance (miles)</label>
                         <input type="number" id="maxDistance" placeholder="e.g., 10">
+                    </div>
+                </div>
+                </div>
+
+                <div id="realEstateChoicesTab" class="sub-tab-content">
+                    <h2>⭐ My Choices</h2>
+                    <p style="color: #666; margin-bottom: 20px;">View and manage your selected real estate properties.</p>
+                    <div id="choicesContainer">
+                        <div class="no-results">
+                            <p>No choices saved yet. Scrape real estate data and add properties to your choices!</p>
+                        </div>
                     </div>
                 </div>
             </div>

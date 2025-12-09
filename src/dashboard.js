@@ -76,6 +76,24 @@ window.switchTab = function(tabName) {
     }
 };
 
+// Real Estate Sub-tab switching
+window.switchRealEstateSubTab = function(subTabName) {
+    const subTabs = document.querySelectorAll('.sub-tab-button');
+    const subContents = document.querySelectorAll('.sub-tab-content');
+
+    subTabs.forEach(tab => tab.classList.remove('active'));
+    subContents.forEach(content => content.classList.remove('active'));
+
+    if (subTabName === 'scrape') {
+        document.querySelector('.sub-tab-button:nth-child(1)').classList.add('active');
+        document.getElementById('realEstateScrapeTab').classList.add('active');
+    } else if (subTabName === 'choices') {
+        document.querySelector('.sub-tab-button:nth-child(2)').classList.add('active');
+        document.getElementById('realEstateChoicesTab').classList.add('active');
+        loadChoices();
+    }
+};
+
 // URL helpers
 window.setUrl = function(url) {
     document.getElementById('scrapeUrl').value = url;
@@ -210,11 +228,14 @@ function displayResults(result) {
     const container = document.getElementById('resultsContainer');
 
     let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
             <p style="color: #666; margin: 0;">
                 <strong>Source:</strong> ${escapeHtml(result.source_url)}
             </p>
-            <button class="btn-save" onclick="saveToDatabase()">💾 Save to Database</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-add-choice" onclick="addCurrentToChoices()">⭐ Add to My Choices</button>
+                <button class="btn-save" onclick="saveToDatabase()">💾 Save to Database</button>
+            </div>
         </div>
         <table class="results-table">
             <thead>
@@ -572,6 +593,203 @@ window.deleteScrape = async function(id) {
     } catch (error) {
         console.error('Error:', error);
         alert('Failed to delete scrape');
+    }
+};
+
+// Real Estate Choices Management
+window.addCurrentToChoices = async function() {
+    if (!currentScrapeData || currentScrapeData.scrape_type !== 'real_estate') {
+        alert('No real estate data to add to choices');
+        return;
+    }
+
+    if (!currentUser) {
+        alert('Please log in to add choices');
+        return;
+    }
+
+    try {
+        const { session } = await auth.getSession();
+        if (!session || !session.user) {
+            alert('Session expired. Please log in again.');
+            window.location.href = '/';
+            return;
+        }
+
+        const params = currentScrapeData.content.params;
+        const listings = currentScrapeData.content.listings;
+
+        if (!listings || listings.length === 0) {
+            alert('No listings found in current scrape data');
+            return;
+        }
+
+        const listing = listings[0];
+
+        const { data, error } = await supabase
+            .from('real_estate_choices')
+            .insert([{
+                user_id: session.user.id,
+                location: listing.location || params.location || 'N/A',
+                property_type: listing.property_type || params.property_type || 'N/A',
+                price_range: listing.price_range || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
+                distance_from: listing.distance_from || params.distance_from || null,
+                max_distance: listing.max_distance || params.max_distance || null,
+                content_preview: listing.content_preview || null,
+                source_url: currentScrapeData.url
+            }])
+            .select();
+
+        if (error) {
+            console.error('Error adding to choices:', error);
+            alert('Failed to add to choices: ' + error.message);
+        } else {
+            alert('Successfully added to My Choices!');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to add to choices');
+    }
+};
+
+async function loadChoices() {
+    if (!currentUser) {
+        document.getElementById('choicesContainer').innerHTML = '<p style="color: #666;">Please wait, loading user data...</p>';
+        return;
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('real_estate_choices')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error loading choices:', error);
+            document.getElementById('choicesContainer').innerHTML = '<p style="color: #f44336;">Failed to load choices</p>';
+            return;
+        }
+
+        if (!data || data.length === 0) {
+            document.getElementById('choicesContainer').innerHTML = '<div class="no-results"><p>No choices saved yet. Scrape real estate data and add properties to your choices!</p></div>';
+            return;
+        }
+
+        displayChoices(data);
+    } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('choicesContainer').innerHTML = '<p style="color: #f44336;">Failed to load choices</p>';
+    }
+}
+
+function displayChoices(items) {
+    const container = document.getElementById('choicesContainer');
+
+    let html = '<div class="choices-grid">';
+
+    items.forEach(item => {
+        const date = new Date(item.created_at).toLocaleDateString();
+
+        html += `
+            <div class="choice-card">
+                <div class="choice-header">
+                    <h3>📍 ${escapeHtml(item.location)}</h3>
+                </div>
+                <div class="choice-details">
+                    <div class="choice-detail-row">
+                        <span class="choice-detail-label">Property Type:</span>
+                        <span class="choice-detail-value">${escapeHtml(item.property_type)}</span>
+                    </div>
+                    <div class="choice-detail-row">
+                        <span class="choice-detail-label">Price Range:</span>
+                        <span class="choice-detail-value">${escapeHtml(item.price_range)}</span>
+                    </div>
+                    ${item.distance_from ? `
+                        <div class="choice-detail-row">
+                            <span class="choice-detail-label">Distance From:</span>
+                            <span class="choice-detail-value">${escapeHtml(item.distance_from)}</span>
+                        </div>
+                    ` : ''}
+                    ${item.max_distance ? `
+                        <div class="choice-detail-row">
+                            <span class="choice-detail-label">Max Distance:</span>
+                            <span class="choice-detail-value">${escapeHtml(item.max_distance)} miles</span>
+                        </div>
+                    ` : ''}
+                    <div class="choice-detail-row">
+                        <span class="choice-detail-label">Added:</span>
+                        <span class="choice-detail-value">${date}</span>
+                    </div>
+                </div>
+                ${item.source_url ? `
+                    <p style="font-size: 13px; color: #666; margin: 10px 0;">
+                        <strong>Source:</strong> <a href="${escapeHtml(item.source_url)}" target="_blank" style="color: #0f3460;">${escapeHtml(item.source_url.substring(0, 50))}...</a>
+                    </p>
+                ` : ''}
+                ${item.notes ? `
+                    <div class="choice-notes">
+                        <strong>Notes:</strong> ${escapeHtml(item.notes)}
+                    </div>
+                ` : ''}
+                <div class="choice-actions">
+                    <button class="btn-edit-choice" onclick="editChoiceNotes('${item.id}', '${escapeHtml(item.notes || '')}')">Edit Notes</button>
+                    <button class="btn-delete" onclick="deleteChoice('${item.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+window.editChoiceNotes = async function(id, currentNotes) {
+    const notes = prompt('Add or edit notes for this property:', currentNotes);
+
+    if (notes === null) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+            .from('real_estate_choices')
+            .update({ notes: notes })
+            .eq('id', id);
+
+        if (error) {
+            alert('Failed to update notes: ' + error.message);
+            return;
+        }
+
+        loadChoices();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update notes');
+    }
+};
+
+window.deleteChoice = async function(id) {
+    if (!confirm('Are you sure you want to remove this from your choices?')) {
+        return;
+    }
+
+    try {
+        const { error } = await supabase
+            .from('real_estate_choices')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('Failed to delete choice: ' + error.message);
+            return;
+        }
+
+        alert('Choice removed successfully');
+        loadChoices();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to delete choice');
     }
 };
 
