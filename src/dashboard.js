@@ -237,35 +237,38 @@ function parseRealEstateData(content, params) {
 
             if (shouldIncludeListing(price, params)) {
                 listings.push({
-                    source: 'Scraped Listing',
                     location: address,
-                    property_type: params.property_type || 'Property',
-                    price_range: price,
-                    distance_from: params.distance_from || 'N/A',
-                    max_distance: params.max_distance ? `${params.max_distance} miles` : 'N/A',
+                    price: price,
                     beds: bedCount,
                     baths: bathCount,
                     sqft: sqft,
-                    content_preview: `${bedCount} bed, ${bathCount} bath, ${sqft} sqft`,
-                    status: 'Extracted'
+                    type: params.property_type || 'any',
+                    status: 'Extracted',
+                    property_type: params.property_type || 'any',
+                    price_range: price,
+                    distance_from: params.distance_from || null,
+                    max_distance: params.max_distance || null,
+                    content_preview: `${bedCount} bed, ${bathCount} bath, ${sqft} sqft`
                 });
             }
         }
     }
 
     if (listings.length === 0) {
+        const priceDisplay = prices[0] || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`;
         listings.push({
-            source: 'Scraped Data',
             location: params.location || 'N/A',
-            property_type: params.property_type || 'N/A',
-            price_range: prices[0] || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
-            distance_from: params.distance_from || 'N/A',
-            max_distance: params.max_distance ? `${params.max_distance} miles` : 'N/A',
+            price: priceDisplay,
             beds: 'N/A',
             baths: 'N/A',
             sqft: 'N/A',
-            content_preview: markdown.substring(0, 300) || 'No detailed content extracted',
-            status: 'Basic Extraction'
+            type: params.property_type || 'any',
+            status: 'Basic Extraction',
+            property_type: params.property_type || 'any',
+            price_range: priceDisplay,
+            distance_from: params.distance_from || null,
+            max_distance: params.max_distance || null,
+            content_preview: markdown.substring(0, 300) || 'No detailed content extracted'
         });
     }
 
@@ -332,11 +335,11 @@ function displayResults(result) {
         html += `
             <tr>
                 <td>${escapeHtml(item.location)}</td>
-                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(item.price_range)}</td>
+                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(item.price)}</td>
                 <td>${escapeHtml(item.beds || 'N/A')}</td>
                 <td>${escapeHtml(item.baths || 'N/A')}</td>
                 <td>${escapeHtml(item.sqft || 'N/A')}</td>
-                <td>${escapeHtml(item.property_type)}</td>
+                <td>${escapeHtml(item.type)}</td>
                 <td><span class="status-success">${escapeHtml(item.status)}</span></td>
                 <td style="text-align: center;">
                     <button class="btn-like" onclick="likeProperty(${index})" title="Add to My Choices">❤️</button>
