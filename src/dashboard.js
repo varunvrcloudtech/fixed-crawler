@@ -309,7 +309,6 @@ function displayResults(result) {
                 </p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button class="btn-add-choice" onclick="addCurrentToChoices()">⭐ Add to My Choices</button>
                 <button class="btn-save" onclick="saveToDatabase()">💾 Save to Database</button>
             </div>
         </div>
@@ -323,12 +322,13 @@ function displayResults(result) {
                     <th>Sqft</th>
                     <th>Type</th>
                     <th>Status</th>
+                    <th>Like</th>
                 </tr>
             </thead>
             <tbody>
     `;
 
-    result.data.forEach(item => {
+    result.data.forEach((item, index) => {
         html += `
             <tr>
                 <td>${escapeHtml(item.location)}</td>
@@ -338,6 +338,9 @@ function displayResults(result) {
                 <td>${escapeHtml(item.sqft || 'N/A')}</td>
                 <td>${escapeHtml(item.property_type)}</td>
                 <td><span class="status-success">${escapeHtml(item.status)}</span></td>
+                <td style="text-align: center;">
+                    <button class="btn-like" onclick="likeProperty(${index})" title="Add to My Choices">❤️</button>
+                </td>
             </tr>
         `;
     });
@@ -347,15 +350,68 @@ function displayResults(result) {
         </table>
     `;
 
-    if (result.raw_content) {
-        html += `
-            <h3 style="margin-top: 30px; color: #333;">Raw Scraped Content (Preview)</h3>
-            <div class="raw-content">${escapeHtml(result.raw_content)}</div>
-        `;
-    }
-
     container.innerHTML = html;
 }
+
+window.likeProperty = async function(index) {
+    if (!currentScrapeData || currentScrapeData.scrape_type !== 'real_estate') {
+        alert('No real estate data available');
+        return;
+    }
+
+    if (!currentUser) {
+        alert('Please log in to add to your choices');
+        return;
+    }
+
+    try {
+        const { session } = await auth.getSession();
+        if (!session || !session.user) {
+            alert('Session expired. Please log in again.');
+            window.location.href = '/';
+            return;
+        }
+
+        const params = currentScrapeData.content.params;
+        const listings = currentScrapeData.content.listings;
+
+        if (!listings || listings.length === 0 || index >= listings.length) {
+            alert('Invalid property selection');
+            return;
+        }
+
+        const listing = listings[index];
+
+        const contentPreview = listing.beds && listing.baths && listing.sqft
+            ? `${listing.beds} bed, ${listing.baths} bath, ${listing.sqft} sqft`
+            : listing.content_preview || 'No details available';
+
+        const { data, error } = await supabase
+            .from('real_estate_choices')
+            .insert([{
+                user_id: session.user.id,
+                location: listing.location || params.location || 'N/A',
+                property_type: listing.property_type || params.property_type || 'N/A',
+                price_range: listing.price_range || `$${params.min_price || '0'} - $${params.max_price || 'No limit'}`,
+                distance_from: listing.distance_from || params.distance_from || null,
+                max_distance: listing.max_distance || params.max_distance || null,
+                content_preview: contentPreview,
+                source_url: currentScrapeData.url,
+                liked: true
+            }])
+            .select();
+
+        if (error) {
+            console.error('Error adding to choices:', error);
+            alert('Failed to add to choices: ' + error.message);
+        } else {
+            alert('Property added to My Choices!');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to add to choices');
+    }
+};
 
 function displayError(error, details) {
     const container = document.getElementById('resultsContainer');

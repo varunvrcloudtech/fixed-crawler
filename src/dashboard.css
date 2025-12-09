@@ -386,6 +386,23 @@ body {
     box-shadow: 0 4px 12px rgba(15, 52, 96, 0.4);
 }
 
+.btn-like {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: transform 0.2s;
+}
+
+.btn-like:hover {
+    transform: scale(1.2);
+}
+
+.btn-like:active {
+    transform: scale(0.95);
+}
+
 .history-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
