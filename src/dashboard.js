@@ -1041,31 +1041,61 @@ window.scrapeBrowserPage = async function() {
 function parseRealEstateDataFromBrowser(content, sourceUrl) {
     const listings = [];
     const markdown = content.markdown || '';
+    const lines = markdown.split('\n');
 
     const priceRegex = /\$\s*[\d,]+(?:\.\d{2})?/g;
-    const prices = markdown.match(priceRegex) || [];
-
     const addressRegex = /\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Circle|Cir)[,\s]+[A-Za-z\s]+/gi;
-    const addresses = markdown.match(addressRegex) || [];
 
-    const bedsRegex = /(\d+)\s*(?:bed|bd|bedroom)s?/gi;
-    const bathsRegex = /(\d+(?:\.\d+)?)\s*(?:bath|ba|bathroom)s?/gi;
-    const sqftRegex = /(\d{1,3}(?:,\d{3})*)\s*(?:sq\s*ft|sqft|square\s*feet)/gi;
+    const bedsRegex = /(\d+)\s*(?:bed|bd|bedroom|br)s?\b/gi;
+    const bathsRegex = /(\d+(?:\.\d+)?)\s*(?:bath|ba|bathroom)s?\b/gi;
+    const sqftRegex = /(\d{1,3}(?:,\d{3})*)\s*(?:sq\.?\s*ft|sqft|square\s*(?:feet|ft))\b/gi;
 
-    const beds = [...markdown.matchAll(bedsRegex)];
-    const baths = [...markdown.matchAll(bathsRegex)];
-    const sqfts = [...markdown.matchAll(sqftRegex)];
+    const propertyBlocks = [];
+    let currentBlock = { text: '', start: 0, end: 0 };
 
-    if (prices.length > 0 && (addresses.length > 0 || beds.length > 0)) {
-        const maxListings = Math.min(20, Math.max(prices.length, addresses.length, beds.length));
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const hasPrice = /\$\s*[\d,]+/.test(line);
+        const hasBeds = /\d+\s*(?:bed|bd|br)\b/i.test(line);
 
-        for (let i = 0; i < maxListings; i++) {
-            const price = prices[i] || 'Price not found';
-            const address = addresses[i] || 'Address not specified';
-            const bedCount = beds[i] ? beds[i][1] : 'N/A';
-            const bathCount = baths[i] ? baths[i][1] : 'N/A';
-            const sqft = sqfts[i] ? sqfts[i][1] : 'N/A';
+        if (hasPrice || hasBeds) {
+            if (currentBlock.text) {
+                propertyBlocks.push({ ...currentBlock });
+            }
+            currentBlock = { text: line, start: i, end: i };
+        } else if (currentBlock.text && (i - currentBlock.end) < 5) {
+            currentBlock.text += '\n' + line;
+            currentBlock.end = i;
+        }
+    }
 
+    if (currentBlock.text) {
+        propertyBlocks.push(currentBlock);
+    }
+
+    if (propertyBlocks.length === 0 && markdown.length > 0) {
+        propertyBlocks.push({ text: markdown, start: 0, end: lines.length });
+    }
+
+    propertyBlocks.forEach((block, blockIndex) => {
+        if (blockIndex >= 20) return;
+
+        const blockText = block.text;
+
+        const priceMatch = blockText.match(priceRegex);
+        const addressMatch = blockText.match(addressRegex);
+
+        const bedsMatches = [...blockText.matchAll(bedsRegex)];
+        const bathsMatches = [...blockText.matchAll(bathsRegex)];
+        const sqftMatches = [...blockText.matchAll(sqftRegex)];
+
+        const price = priceMatch && priceMatch[0] ? priceMatch[0] : 'N/A';
+        const address = addressMatch && addressMatch[0] ? addressMatch[0] : 'Address not specified';
+        const bedCount = bedsMatches.length > 0 ? bedsMatches[0][1] : 'N/A';
+        const bathCount = bathsMatches.length > 0 ? bathsMatches[0][1] : 'N/A';
+        const sqft = sqftMatches.length > 0 ? sqftMatches[0][1] : 'N/A';
+
+        if (price !== 'N/A' || bedCount !== 'N/A') {
             listings.push({
                 location: address,
                 price: price,
@@ -1078,10 +1108,11 @@ function parseRealEstateDataFromBrowser(content, sourceUrl) {
                 liked: false
             });
         }
-    }
+    });
 
     if (listings.length === 0) {
-        const priceDisplay = prices[0] || 'N/A';
+        const allPrices = markdown.match(priceRegex) || [];
+        const priceDisplay = allPrices[0] || 'N/A';
         listings.push({
             location: 'Location not found',
             price: priceDisplay,
