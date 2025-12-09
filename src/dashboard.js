@@ -63,14 +63,17 @@ window.switchTab = function(tabName) {
     tabs.forEach(tab => tab.classList.remove('active'));
     contents.forEach(content => content.classList.remove('active'));
 
-    if (tabName === 'realEstate') {
+    if (tabName === 'realEstateWeb') {
         document.querySelector('.tab-button:nth-child(1)').classList.add('active');
+        document.getElementById('realEstateWebTab').classList.add('active');
+    } else if (tabName === 'realEstate') {
+        document.querySelector('.tab-button:nth-child(2)').classList.add('active');
         document.getElementById('realEstateTab').classList.add('active');
     } else if (tabName === 'general') {
-        document.querySelector('.tab-button:nth-child(2)').classList.add('active');
+        document.querySelector('.tab-button:nth-child(3)').classList.add('active');
         document.getElementById('generalTab').classList.add('active');
     } else if (tabName === 'history') {
-        document.querySelector('.tab-button:nth-child(3)').classList.add('active');
+        document.querySelector('.tab-button:nth-child(4)').classList.add('active');
         document.getElementById('historyTab').classList.add('active');
         loadHistory();
     }
@@ -95,6 +98,10 @@ window.switchRealEstateSubTab = function(subTabName) {
 };
 
 // URL helpers
+window.setWebUrl = function(url) {
+    document.getElementById('webScrapeUrl').value = url;
+};
+
 window.setUrl = function(url) {
     document.getElementById('scrapeUrl').value = url;
 };
@@ -111,6 +118,97 @@ window.logout = async function() {
     } else {
         console.error('Logout error:', error);
         alert('Failed to logout. Please try again.');
+    }
+};
+
+// Real Estate Web Scraping
+window.startWebScraping = async function() {
+    const url = document.getElementById('webScrapeUrl').value;
+    const location = document.getElementById('webLocation').value;
+    const propertyType = document.getElementById('webPropertyType').value;
+    const minPrice = document.getElementById('webMinPrice').value;
+    const maxPrice = document.getElementById('webMaxPrice').value;
+    const distanceFrom = document.getElementById('webDistanceFrom').value;
+    const maxDistance = document.getElementById('webMaxDistance').value;
+
+    if (!url) {
+        alert('Please enter a URL to scrape');
+        return;
+    }
+
+    document.getElementById('loading').classList.add('active');
+    document.getElementById('resultsContainer').innerHTML = '';
+    document.getElementById('webScrapeBtn').disabled = true;
+    document.getElementById('webScrapeBtn').textContent = '⏳ Scraping...';
+
+    try {
+        const { session } = await auth.getSession();
+
+        console.log('Making request to:', EDGE_FUNCTION_URL);
+        console.log('Session:', session);
+
+        const response = await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+                url: url,
+                formats: ['markdown', 'html'],
+                onlyMainContent: true
+            })
+        });
+
+        console.log('Response status:', response.status);
+        const result = await response.json();
+        console.log('Result:', result);
+
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('webScrapeBtn').disabled = false;
+        document.getElementById('webScrapeBtn').textContent = '🚀 Scrape';
+
+        if (response.ok) {
+            const params = {
+                location,
+                property_type: propertyType,
+                min_price: minPrice,
+                max_price: maxPrice,
+                distance_from: distanceFrom,
+                max_distance: maxDistance
+            };
+
+            const scraped_content = result.data || {};
+            const listings = parseRealEstateData(scraped_content, params);
+
+            currentScrapeData = {
+                scrape_type: 'real_estate',
+                url: url,
+                title: `Real Estate - ${params.location || 'Unknown Location'}`,
+                content: {
+                    params,
+                    scraped_content,
+                    listings
+                }
+            };
+
+            displayResults({
+                success: true,
+                data: listings,
+                raw_content: scraped_content.markdown ? scraped_content.markdown.substring(0, 2000) : '',
+                source_url: url
+            });
+        } else {
+            console.error('API Error:', result);
+            displayError(`Firecrawl API error: ${response.status}`, JSON.stringify(result.error || result));
+        }
+    } catch (error) {
+        console.error('Scraping error:', error);
+        document.getElementById('loading').classList.remove('active');
+        document.getElementById('webScrapeBtn').disabled = false;
+        document.getElementById('webScrapeBtn').textContent = '🚀 Scrape';
+        displayError('Network error: ' + error.message);
     }
 };
 
