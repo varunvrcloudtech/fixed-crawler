@@ -19,7 +19,6 @@
     <div class="main-content">
         <div class="tabs">
             <button class="tab-button active" onclick="switchTab('realEstate')">🏠 Real Estate</button>
-            <button class="tab-button" onclick="switchTab('browserSearch')">🔎 Real Estate Web</button>
             <button class="tab-button" onclick="switchTab('general')">🌐 Any Website</button>
             <button class="tab-button" onclick="switchTab('history')">📚 History</button>
         </div>
@@ -105,61 +104,6 @@
                         <div class="no-results">
                             <p>No choices saved yet. Scrape real estate data and add properties to your choices!</p>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div id="browserSearchTab" class="tab-content">
-                <h2>🔎 Real Estate Web</h2>
-                <p style="color: #666; margin-bottom: 20px;">Browse real estate websites directly and scrape visible listings with a single click.</p>
-
-                <div class="website-selector">
-                    <label for="websiteSelect" style="font-weight: 600; color: #333; margin-bottom: 10px; display: block;">Select Real Estate Website:</label>
-                    <div class="website-buttons">
-                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.zillow.com/')">
-                            <span class="website-icon">🏘️</span>
-                            <span>Zillow</span>
-                        </button>
-                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.realtor.com/')">
-                            <span class="website-icon">🏡</span>
-                            <span>Realtor.com</span>
-                        </button>
-                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.redfin.com/')">
-                            <span class="website-icon">🏠</span>
-                            <span>Redfin</span>
-                        </button>
-                        <button class="website-btn" onclick="loadRealEstateWebsite('https://www.trulia.com/')">
-                            <span class="website-icon">🏢</span>
-                            <span>Trulia</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="browser-controls">
-                    <div class="url-display-group">
-                        <input type="text" id="browserUrl" placeholder="Enter or navigate to a real estate website URL..." readonly style="flex: 1;">
-                        <button class="btn-scrape-browser" onclick="scrapeBrowserPage()">
-                            🚀 Scrape Visible Listings
-                        </button>
-                    </div>
-                    <div class="info-box" style="margin-top: 15px;">
-                        <strong>💡 How to use:</strong> Click a website button above to open it, search for properties using your criteria (location, price, beds, etc.), then click "Scrape Visible Listings" to extract the data shown on the current page.
-                        <br><br>
-                        <strong>⚠️ Note:</strong> Most real estate websites block iframe embedding for security. If a site won't load, you can still scrape it by entering the URL directly in the "Real Estate" or "Any Website" tabs instead.
-                    </div>
-                </div>
-
-                <div class="iframe-container" style="display: none; margin-top: 20px;">
-                    <div class="iframe-header">
-                        <span id="iframeStatus">No website loaded</span>
-                        <button class="btn-close-iframe" onclick="closeBrowser()">✕ Close Browser</button>
-                    </div>
-                    <iframe id="realEstateIframe" sandbox="allow-same-origin allow-scripts allow-forms allow-popups" style="width: 100%; height: 600px; border: 2px solid #e0e0e0; border-radius: 8px;"></iframe>
-                </div>
-
-                <div id="browserResultsContainer" class="browser-results-section">
-                    <div class="no-results">
-                        <p>No results yet. Browse a real estate website and click "Scrape Visible Listings" to extract data.</p>
                     </div>
                 </div>
             </div>
