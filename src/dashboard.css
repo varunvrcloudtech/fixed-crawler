@@ -764,6 +764,213 @@ body {
     font-style: italic;
 }
 
+.website-selector {
+    margin-bottom: 25px;
+}
+
+.website-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.website-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+.website-btn:hover {
+    border-color: #0f3460;
+    background: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 52, 96, 0.15);
+}
+
+.website-icon {
+    font-size: 32px;
+}
+
+.browser-controls {
+    margin-bottom: 20px;
+}
+
+.url-display-group {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.url-display-group input {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #f8f9fa;
+}
+
+.btn-scrape-browser {
+    padding: 14px 30px;
+    background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.btn-scrape-browser:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(46, 125, 50, 0.4);
+}
+
+.btn-scrape-browser:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.iframe-container {
+    margin-top: 20px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+.iframe-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.iframe-header span {
+    font-size: 14px;
+    color: #666;
+    font-weight: 600;
+}
+
+.btn-close-iframe {
+    padding: 6px 16px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-close-iframe:hover {
+    background: #d32f2f;
+}
+
+.browser-results-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    min-height: 200px;
+}
+
+.results-table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+}
+
+.browser-results-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.browser-results-table thead {
+    background: #2e7d32;
+    color: white;
+}
+
+.browser-results-table th {
+    padding: 12px 15px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.browser-results-table tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background 0.2s;
+}
+
+.browser-results-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.browser-results-table td {
+    padding: 12px 15px;
+    font-size: 13px;
+    color: #333;
+}
+
+.btn-like-result {
+    background: transparent;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-like-result:hover {
+    transform: scale(1.1);
+    border-color: #ff4081;
+}
+
+.btn-like-result.liked {
+    border-color: #ff4081;
+    background: #fff0f5;
+}
+
+.btn-save-results {
+    margin-top: 20px;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-save-results:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(15, 52, 96, 0.4);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .navbar {

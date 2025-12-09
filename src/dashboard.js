@@ -66,11 +66,14 @@ window.switchTab = function(tabName) {
     if (tabName === 'realEstate') {
         document.querySelector('.tab-button:nth-child(1)').classList.add('active');
         document.getElementById('realEstateTab').classList.add('active');
-    } else if (tabName === 'general') {
+    } else if (tabName === 'browserSearch') {
         document.querySelector('.tab-button:nth-child(2)').classList.add('active');
+        document.getElementById('browserSearchTab').classList.add('active');
+    } else if (tabName === 'general') {
+        document.querySelector('.tab-button:nth-child(3)').classList.add('active');
         document.getElementById('generalTab').classList.add('active');
     } else if (tabName === 'history') {
-        document.querySelector('.tab-button:nth-child(3)').classList.add('active');
+        document.querySelector('.tab-button:nth-child(4)').classList.add('active');
         document.getElementById('historyTab').classList.add('active');
         loadHistory();
     }
@@ -950,6 +953,290 @@ window.deleteChoice = async function(id) {
     } catch (error) {
         console.error('Error:', error);
         alert('Failed to delete choice');
+    }
+};
+
+// Browser Search Functionality
+let browserScrapedResults = [];
+let currentBrowserUrl = '';
+
+window.loadRealEstateWebsite = function(url) {
+    const iframe = document.getElementById('realEstateIframe');
+    const iframeContainer = document.querySelector('.iframe-container');
+    const browserUrlInput = document.getElementById('browserUrl');
+    const iframeStatus = document.getElementById('iframeStatus');
+
+    iframe.src = url;
+    currentBrowserUrl = url;
+    browserUrlInput.value = url;
+    iframeContainer.style.display = 'block';
+    iframeStatus.textContent = `Loading ${new URL(url).hostname}...`;
+
+    iframe.onload = function() {
+        iframeStatus.textContent = `Browsing ${new URL(url).hostname}`;
+    };
+};
+
+window.closeBrowser = function() {
+    const iframe = document.getElementById('realEstateIframe');
+    const iframeContainer = document.querySelector('.iframe-container');
+    const browserUrlInput = document.getElementById('browserUrl');
+
+    iframe.src = '';
+    currentBrowserUrl = '';
+    browserUrlInput.value = '';
+    iframeContainer.style.display = 'none';
+};
+
+window.scrapeBrowserPage = async function() {
+    if (!currentBrowserUrl) {
+        alert('Please load a real estate website first');
+        return;
+    }
+
+    const scrapeBtn = document.querySelector('.btn-scrape-browser');
+    scrapeBtn.disabled = true;
+    scrapeBtn.textContent = '⏳ Scraping...';
+
+    try {
+        const { session } = await auth.getSession();
+
+        const response = await fetch(EDGE_FUNCTION_URL, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+                'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY
+            },
+            body: JSON.stringify({
+                url: currentBrowserUrl,
+                formats: ['markdown'],
+                onlyMainContent: true
+            })
+        });
+
+        const result = await response.json();
+
+        scrapeBtn.disabled = false;
+        scrapeBtn.textContent = '🚀 Scrape Visible Listings';
+
+        if (response.ok) {
+            const scraped_content = result.data || {};
+            const listings = parseRealEstateDataFromBrowser(scraped_content, currentBrowserUrl);
+
+            browserScrapedResults = listings;
+
+            displayBrowserResults(listings, currentBrowserUrl);
+        } else {
+            alert(`Error scraping: ${result.error || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Scraping error:', error);
+        scrapeBtn.disabled = false;
+        scrapeBtn.textContent = '🚀 Scrape Visible Listings';
+        alert('Failed to scrape page: ' + error.message);
+    }
+};
+
+function parseRealEstateDataFromBrowser(content, sourceUrl) {
+    const listings = [];
+    const markdown = content.markdown || '';
+
+    const priceRegex = /\$\s*[\d,]+(?:\.\d{2})?/g;
+    const prices = markdown.match(priceRegex) || [];
+
+    const addressRegex = /\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Circle|Cir)[,\s]+[A-Za-z\s]+/gi;
+    const addresses = markdown.match(addressRegex) || [];
+
+    const bedsRegex = /(\d+)\s*(?:bed|bd|bedroom)s?/gi;
+    const bathsRegex = /(\d+(?:\.\d+)?)\s*(?:bath|ba|bathroom)s?/gi;
+    const sqftRegex = /(\d{1,3}(?:,\d{3})*)\s*(?:sq\s*ft|sqft|square\s*feet)/gi;
+
+    const beds = [...markdown.matchAll(bedsRegex)];
+    const baths = [...markdown.matchAll(bathsRegex)];
+    const sqfts = [...markdown.matchAll(sqftRegex)];
+
+    if (prices.length > 0 && (addresses.length > 0 || beds.length > 0)) {
+        const maxListings = Math.min(20, Math.max(prices.length, addresses.length, beds.length));
+
+        for (let i = 0; i < maxListings; i++) {
+            const price = prices[i] || 'Price not found';
+            const address = addresses[i] || 'Address not specified';
+            const bedCount = beds[i] ? beds[i][1] : 'N/A';
+            const bathCount = baths[i] ? baths[i][1] : 'N/A';
+            const sqft = sqfts[i] ? sqfts[i][1] : 'N/A';
+
+            listings.push({
+                location: address,
+                price: price,
+                beds: bedCount,
+                baths: bathCount,
+                sqft: sqft,
+                property_type: 'N/A',
+                source_url: sourceUrl,
+                content_preview: `${bedCount} bed, ${bathCount} bath, ${sqft} sqft`,
+                liked: false
+            });
+        }
+    }
+
+    if (listings.length === 0) {
+        const priceDisplay = prices[0] || 'N/A';
+        listings.push({
+            location: 'Location not found',
+            price: priceDisplay,
+            beds: 'N/A',
+            baths: 'N/A',
+            sqft: 'N/A',
+            property_type: 'N/A',
+            source_url: sourceUrl,
+            content_preview: markdown.substring(0, 200) || 'No details available',
+            liked: false
+        });
+    }
+
+    return listings;
+}
+
+function displayBrowserResults(listings, sourceUrl) {
+    const container = document.getElementById('browserResultsContainer');
+
+    let html = `
+        <h3 style="color: #333; margin-bottom: 15px;">📊 Scraped Results (${listings.length} properties found)</h3>
+        <p style="color: #666; margin-bottom: 15px;">
+            <strong>Source:</strong> ${escapeHtml(sourceUrl)}
+        </p>
+        <div class="results-table-container">
+            <table class="browser-results-table">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Price</th>
+                        <th>Beds</th>
+                        <th>Baths</th>
+                        <th>Sqft</th>
+                        <th>Details</th>
+                        <th>Like</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    listings.forEach((listing, index) => {
+        const likeIcon = listing.liked ? '❤️' : '🤍';
+        html += `
+            <tr>
+                <td><strong>${escapeHtml(listing.location)}</strong></td>
+                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(listing.price)}</td>
+                <td>${escapeHtml(listing.beds)}</td>
+                <td>${escapeHtml(listing.baths)}</td>
+                <td>${escapeHtml(listing.sqft)}</td>
+                <td>${escapeHtml(listing.content_preview)}</td>
+                <td style="text-align: center;">
+                    <button class="btn-like-result ${listing.liked ? 'liked' : ''}" onclick="toggleBrowserLike(${index})" title="${listing.liked ? 'Unlike' : 'Like'}">
+                        ${likeIcon}
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+        <button class="btn-save-results" onclick="saveBrowserResults()">💾 Save All Results to Database</button>
+    `;
+
+    container.innerHTML = html;
+}
+
+window.toggleBrowserLike = function(index) {
+    if (index >= 0 && index < browserScrapedResults.length) {
+        browserScrapedResults[index].liked = !browserScrapedResults[index].liked;
+        displayBrowserResults(browserScrapedResults, currentBrowserUrl);
+    }
+};
+
+window.saveBrowserResults = async function() {
+    if (!browserScrapedResults || browserScrapedResults.length === 0) {
+        alert('No results to save');
+        return;
+    }
+
+    if (!currentUser) {
+        alert('Please log in to save results');
+        return;
+    }
+
+    try {
+        const { session } = await auth.getSession();
+        if (!session || !session.user) {
+            alert('Session expired. Please log in again.');
+            window.location.href = '/';
+            return;
+        }
+
+        const resultsToSave = browserScrapedResults.map(listing => ({
+            user_id: session.user.id,
+            location: listing.location,
+            price: listing.price,
+            beds: listing.beds,
+            baths: listing.baths,
+            sqft: listing.sqft,
+            property_type: listing.property_type || 'N/A',
+            source_url: listing.source_url,
+            content_preview: listing.content_preview,
+            liked: listing.liked
+        }));
+
+        const { data, error } = await supabase
+            .from('real_estate_results')
+            .insert(resultsToSave)
+            .select();
+
+        if (error) {
+            console.error('Error saving results:', error);
+            alert('Failed to save results: ' + error.message);
+            return;
+        }
+
+        const likedResults = browserScrapedResults.filter(listing => listing.liked);
+
+        if (likedResults.length > 0) {
+            const choicesToSave = likedResults.map(listing => ({
+                user_id: session.user.id,
+                location: listing.location,
+                property_type: listing.property_type || 'N/A',
+                price_range: listing.price,
+                distance_from: null,
+                max_distance: null,
+                content_preview: listing.content_preview,
+                source_url: listing.source_url,
+                liked: true
+            }));
+
+            const { error: choicesError } = await supabase
+                .from('real_estate_choices')
+                .insert(choicesToSave);
+
+            if (choicesError) {
+                console.error('Error saving liked choices:', choicesError);
+                alert('Results saved, but failed to save liked properties: ' + choicesError.message);
+                return;
+            }
+
+            alert(`Successfully saved ${resultsToSave.length} results to database!\n${likedResults.length} liked properties added to My Choices.`);
+        } else {
+            alert(`Successfully saved ${resultsToSave.length} results to database!`);
+        }
+
+        browserScrapedResults = [];
+        document.getElementById('browserResultsContainer').innerHTML = '<div class="no-results"><p>Results saved! Browse another page to scrape more listings.</p></div>';
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to save results');
     }
 };
 
