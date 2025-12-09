@@ -1026,6 +1026,12 @@ window.scrapeBrowserPage = async function() {
 
             browserScrapedResults = listings;
 
+            console.log('=== Scraping Results ===');
+            console.log('Total listings extracted:', listings.length);
+            console.log('Valid listings (with price or beds):', listings.filter(l => l.price !== 'N/A' || l.beds !== 'N/A').length);
+            console.log('Raw markdown length:', scraped_content.markdown?.length || 0);
+            console.log('Sample listings:', listings.slice(0, 3));
+
             displayBrowserResults(listings, currentBrowserUrl);
         } else {
             alert(`Error scraping: ${result.error || 'Unknown error'}`);
@@ -1041,113 +1047,169 @@ window.scrapeBrowserPage = async function() {
 function parseRealEstateDataFromBrowser(content, sourceUrl) {
     const listings = [];
     const markdown = content.markdown || '';
-    const lines = markdown.split('\n');
 
-    const priceRegex = /\$\s*[\d,]+(?:\.\d{2})?/g;
-    const addressRegex = /\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Way|Circle|Cir)[,\s]+[A-Za-z\s]+/gi;
+    const lines = markdown.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-    const bedsRegex = /(\d+)\s*(?:bed|bd|bedroom|br)s?\b/gi;
-    const bathsRegex = /(\d+(?:\.\d+)?)\s*(?:bath|ba|bathroom)s?\b/gi;
-    const sqftRegex = /(\d{1,3}(?:,\d{3})*)\s*(?:sq\.?\s*ft|sqft|square\s*(?:feet|ft))\b/gi;
-
-    const propertyBlocks = [];
-    let currentBlock = { text: '', start: 0, end: 0 };
+    const propertyGroups = [];
+    let currentGroup = [];
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const hasPrice = /\$\s*[\d,]+/.test(line);
-        const hasBeds = /\d+\s*(?:bed|bd|br)\b/i.test(line);
 
-        if (hasPrice || hasBeds) {
-            if (currentBlock.text) {
-                propertyBlocks.push({ ...currentBlock });
+        const hasPrice = /\$[\d,]+/.test(line);
+        const hasBeds = /\d+\s*(?:bed|bd|br)\b/i.test(line);
+        const hasBaths = /\d+(?:\.\d+)?\s*(?:bath|ba)\b/i.test(line);
+        const hasSqft = /\d[\d,]*\s*(?:sq|sqft)\b/i.test(line);
+
+        const isPropertyInfo = hasPrice || hasBeds || hasBaths || hasSqft;
+
+        if (isPropertyInfo) {
+            currentGroup.push(line);
+        } else if (currentGroup.length > 0) {
+            if (currentGroup.length >= 2 || currentGroup.some(l => /\$[\d,]+/.test(l))) {
+                propertyGroups.push([...currentGroup]);
             }
-            currentBlock = { text: line, start: i, end: i };
-        } else if (currentBlock.text && (i - currentBlock.end) < 5) {
-            currentBlock.text += '\n' + line;
-            currentBlock.end = i;
+            currentGroup = [];
         }
     }
 
-    if (currentBlock.text) {
-        propertyBlocks.push(currentBlock);
+    if (currentGroup.length > 0) {
+        propertyGroups.push(currentGroup);
     }
 
-    if (propertyBlocks.length === 0 && markdown.length > 0) {
-        propertyBlocks.push({ text: markdown, start: 0, end: lines.length });
-    }
+    const extractedProperties = [];
 
-    propertyBlocks.forEach((block, blockIndex) => {
-        if (blockIndex >= 20) return;
+    for (const group of propertyGroups) {
+        const groupText = group.join(' ');
 
-        const blockText = block.text;
+        const priceMatch = groupText.match(/\$\s*([\d,]+(?:\.\d{2})?)/);
+        const bedsMatch = groupText.match(/(\d+)\s*(?:bed|bd|br)(?:room)?s?\b/i);
+        const bathsMatch = groupText.match(/(\d+(?:\.\d+)?)\s*(?:bath|ba)(?:room)?s?\b/i);
+        const sqftMatch = groupText.match(/([\d,]+)\s*(?:sq\.?\s*ft|sqft)\b/i);
 
-        const priceMatch = blockText.match(priceRegex);
-        const addressMatch = blockText.match(addressRegex);
+        const addressMatch = groupText.match(/\d+\s+[A-Za-z\s]+(?:St(?:reet)?|Ave(?:nue)?|Rd|Road|Blvd|Boulevard|Ln|Lane|Dr|Drive|Ct|Court|Pl|Place|Way|Cir|Circle)(?:[,\s]+[A-Za-z\s]+)?/i);
 
-        const bedsMatches = [...blockText.matchAll(bedsRegex)];
-        const bathsMatches = [...blockText.matchAll(bathsRegex)];
-        const sqftMatches = [...blockText.matchAll(sqftRegex)];
-
-        const price = priceMatch && priceMatch[0] ? priceMatch[0] : 'N/A';
-        const address = addressMatch && addressMatch[0] ? addressMatch[0] : 'Address not specified';
-        const bedCount = bedsMatches.length > 0 ? bedsMatches[0][1] : 'N/A';
-        const bathCount = bathsMatches.length > 0 ? bathsMatches[0][1] : 'N/A';
-        const sqft = sqftMatches.length > 0 ? sqftMatches[0][1] : 'N/A';
-
-        if (price !== 'N/A' || bedCount !== 'N/A') {
-            listings.push({
-                location: address,
-                price: price,
-                beds: bedCount,
-                baths: bathCount,
-                sqft: sqft,
-                property_type: 'N/A',
-                source_url: sourceUrl,
-                content_preview: `${bedCount} bed, ${bathCount} bath, ${sqft} sqft`,
-                liked: false
+        if (priceMatch || (bedsMatch && bathsMatch)) {
+            extractedProperties.push({
+                price: priceMatch ? `$${priceMatch[1]}` : null,
+                beds: bedsMatch ? bedsMatch[1] : null,
+                baths: bathsMatch ? bathsMatch[1] : null,
+                sqft: sqftMatch ? sqftMatch[1] : null,
+                address: addressMatch ? addressMatch[0] : null,
+                rawText: groupText
             });
         }
+    }
+
+    const dedupedProperties = [];
+    const seen = new Set();
+
+    for (const prop of extractedProperties) {
+        const key = `${prop.price}-${prop.beds}-${prop.baths}`;
+        if (!seen.has(key) && (prop.price || prop.beds)) {
+            seen.add(key);
+            dedupedProperties.push(prop);
+        }
+    }
+
+    dedupedProperties.forEach(prop => {
+        const price = prop.price || 'N/A';
+        const beds = prop.beds || 'N/A';
+        const baths = prop.baths || 'N/A';
+        const sqft = prop.sqft || 'N/A';
+        const location = prop.address || 'Address not available';
+
+        const details = [];
+        if (beds !== 'N/A') details.push(`${beds} bed`);
+        if (baths !== 'N/A') details.push(`${baths} bath`);
+        if (sqft !== 'N/A') details.push(`${sqft} sqft`);
+
+        listings.push({
+            location: location,
+            price: price,
+            beds: beds,
+            baths: baths,
+            sqft: sqft,
+            property_type: 'For Sale',
+            source_url: sourceUrl,
+            content_preview: details.length > 0 ? details.join(', ') : 'Property details',
+            liked: false
+        });
     });
 
     if (listings.length === 0) {
-        const allPrices = markdown.match(priceRegex) || [];
-        const priceDisplay = allPrices[0] || 'N/A';
+        const allPrices = markdown.match(/\$[\d,]+/g) || [];
+
+        if (allPrices.length > 0) {
+            console.log('Found prices but could not parse listings. Raw markdown:', markdown.substring(0, 500));
+        }
+
         listings.push({
-            location: 'Location not found',
-            price: priceDisplay,
+            location: 'Unable to extract address',
+            price: allPrices[0] || 'N/A',
             beds: 'N/A',
             baths: 'N/A',
             sqft: 'N/A',
-            property_type: 'N/A',
+            property_type: 'Unknown',
             source_url: sourceUrl,
-            content_preview: markdown.substring(0, 200) || 'No details available',
+            content_preview: 'Data extraction incomplete - try a different page',
             liked: false
         });
     }
 
-    return listings;
+    return listings.slice(0, 50);
 }
 
 function displayBrowserResults(listings, sourceUrl) {
     const container = document.getElementById('browserResultsContainer');
 
+    const validListings = listings.filter(l => l.price !== 'N/A' || l.beds !== 'N/A');
+    const hasValidData = validListings.length > 0;
+
     let html = `
-        <h3 style="color: #333; margin-bottom: 15px;">📊 Scraped Results (${listings.length} properties found)</h3>
-        <p style="color: #666; margin-bottom: 15px;">
-            <strong>Source:</strong> ${escapeHtml(sourceUrl)}
-        </p>
-        <div class="results-table-container">
-            <table class="browser-results-table">
+        <div class="results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+            <div>
+                <h3 style="color: #333; margin: 0 0 10px 0;">📊 Scraped Results</h3>
+                <p style="color: #666; margin: 0; font-size: 14px;">
+                    <strong>Found:</strong> ${validListings.length} properties
+                    ${!hasValidData ? '<span style="color: #f44336; margin-left: 10px;">⚠️ Limited data extracted</span>' : ''}
+                </p>
+                <p style="color: #888; margin: 5px 0 0 0; font-size: 12px;">
+                    <strong>Source:</strong> ${escapeHtml(new URL(sourceUrl).hostname)}
+                </p>
+            </div>
+            ${hasValidData ? '<button class="btn-save-results" onclick="saveBrowserResults()" style="height: fit-content;">💾 Save All to Database</button>' : ''}
+        </div>
+    `;
+
+    if (!hasValidData) {
+        html += `
+            <div class="info-box" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-bottom: 20px;">
+                <strong>⚠️ Data Extraction Notice:</strong><br>
+                The scraper found limited property information on this page. This could happen because:<br>
+                <ul style="margin: 10px 0 0 20px; padding: 0;">
+                    <li>The page structure is complex or uses dynamic loading</li>
+                    <li>Properties are displayed in a non-standard format</li>
+                    <li>The page requires scrolling or interaction to load more content</li>
+                </ul>
+                <strong>💡 Tip:</strong> Try navigating to a different search results page or filter view, then scrape again.
+            </div>
+        `;
+    }
+
+    html += `
+        <div class="results-table-container" style="overflow-x: auto;">
+            <table class="browser-results-table" style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr>
-                        <th>Location</th>
-                        <th>Price</th>
-                        <th>Beds</th>
-                        <th>Baths</th>
-                        <th>Sqft</th>
-                        <th>Details</th>
-                        <th>Like</th>
+                    <tr style="background: #0f3460; color: white;">
+                        <th style="padding: 12px; text-align: left;">#</th>
+                        <th style="padding: 12px; text-align: left;">Location</th>
+                        <th style="padding: 12px; text-align: left;">Price</th>
+                        <th style="padding: 12px; text-align: center;">Beds</th>
+                        <th style="padding: 12px; text-align: center;">Baths</th>
+                        <th style="padding: 12px; text-align: center;">Sqft</th>
+                        <th style="padding: 12px; text-align: left;">Details</th>
+                        <th style="padding: 12px; text-align: center;">Like</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1155,16 +1217,20 @@ function displayBrowserResults(listings, sourceUrl) {
 
     listings.forEach((listing, index) => {
         const likeIcon = listing.liked ? '❤️' : '🤍';
+        const rowBg = index % 2 === 0 ? '#ffffff' : '#f9f9f9';
+        const isValid = listing.price !== 'N/A' || listing.beds !== 'N/A';
+
         html += `
-            <tr>
-                <td><strong>${escapeHtml(listing.location)}</strong></td>
-                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(listing.price)}</td>
-                <td>${escapeHtml(listing.beds)}</td>
-                <td>${escapeHtml(listing.baths)}</td>
-                <td>${escapeHtml(listing.sqft)}</td>
-                <td>${escapeHtml(listing.content_preview)}</td>
-                <td style="text-align: center;">
-                    <button class="btn-like-result ${listing.liked ? 'liked' : ''}" onclick="toggleBrowserLike(${index})" title="${listing.liked ? 'Unlike' : 'Like'}">
+            <tr style="background: ${rowBg}; ${!isValid ? 'opacity: 0.6;' : ''}">
+                <td style="padding: 12px; font-weight: 500; color: #666;">${index + 1}</td>
+                <td style="padding: 12px;"><strong>${escapeHtml(listing.location)}</strong></td>
+                <td style="padding: 12px; font-weight: 600; color: ${listing.price !== 'N/A' ? '#2e7d32' : '#999'};">${escapeHtml(listing.price)}</td>
+                <td style="padding: 12px; text-align: center;">${escapeHtml(listing.beds)}</td>
+                <td style="padding: 12px; text-align: center;">${escapeHtml(listing.baths)}</td>
+                <td style="padding: 12px; text-align: center;">${escapeHtml(listing.sqft)}</td>
+                <td style="padding: 12px; font-size: 13px; color: #666;">${escapeHtml(listing.content_preview)}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <button class="btn-like-result ${listing.liked ? 'liked' : ''}" onclick="toggleBrowserLike(${index})" title="${listing.liked ? 'Unlike' : 'Like'}" style="border: none; background: transparent; cursor: pointer; font-size: 20px;">
                         ${likeIcon}
                     </button>
                 </td>
@@ -1176,8 +1242,18 @@ function displayBrowserResults(listings, sourceUrl) {
                 </tbody>
             </table>
         </div>
-        <button class="btn-save-results" onclick="saveBrowserResults()">💾 Save All Results to Database</button>
     `;
+
+    if (hasValidData) {
+        html += `
+            <div style="margin-top: 20px; padding: 15px; background: #e8f5e9; border-radius: 8px; text-align: center;">
+                <p style="margin: 0 0 10px 0; color: #2e7d32; font-weight: 500;">
+                    ✓ Successfully extracted ${validListings.length} properties
+                </p>
+                <button class="btn-save-results" onclick="saveBrowserResults()">💾 Save All Results to Database</button>
+            </div>
+        `;
+    }
 
     container.innerHTML = html;
 }

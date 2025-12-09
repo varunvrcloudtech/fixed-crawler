@@ -110,8 +110,22 @@
             </div>
 
             <div id="browserSearchTab" class="tab-content">
-                <h2>🔎 Real Estate Web</h2>
-                <p style="color: #666; margin-bottom: 20px;">Browse real estate websites directly and scrape visible listings with a single click.</p>
+                <h2>🔎 Real Estate Web Scraper</h2>
+                <p style="color: #666; margin-bottom: 20px;">Browse real estate websites and extract property listings with intelligent data parsing.</p>
+
+                <div class="info-box" style="margin-bottom: 20px; background: #e3f2fd; border-left: 4px solid #2196f3;">
+                    <strong>📖 How to Use:</strong>
+                    <ol style="margin: 10px 0 0 20px; padding: 0;">
+                        <li><strong>Select a Website:</strong> Click one of the buttons below to open a real estate website</li>
+                        <li><strong>Search for Properties:</strong> Use the website's search filters (location, price, beds, etc.)</li>
+                        <li><strong>Navigate to Results:</strong> Make sure you're on a page showing property listings</li>
+                        <li><strong>Scrape Data:</strong> Click "Scrape Visible Listings" to extract all property details</li>
+                        <li><strong>Review & Save:</strong> Like your favorites and save all results to the database</li>
+                    </ol>
+                    <p style="margin: 10px 0 0 0; font-size: 13px; color: #1565c0;">
+                        <strong>💡 Best Results:</strong> Works best on search results pages with multiple listings visible. Extracts: Price, Beds, Baths, Square Footage, and Location.
+                    </p>
+                </div>
 
                 <div class="website-selector">
                     <label for="websiteSelect" style="font-weight: 600; color: #333; margin-bottom: 10px; display: block;">Select Real Estate Website:</label>
@@ -137,13 +151,10 @@
 
                 <div class="browser-controls">
                     <div class="url-display-group">
-                        <input type="text" id="browserUrl" placeholder="Enter or navigate to a real estate website URL..." readonly style="flex: 1;">
+                        <input type="text" id="browserUrl" placeholder="Click a website button above to get started..." readonly style="flex: 1;">
                         <button class="btn-scrape-browser" onclick="scrapeBrowserPage()">
                             🚀 Scrape Visible Listings
                         </button>
-                    </div>
-                    <div class="info-box" style="margin-top: 15px;">
-                        <strong>💡 How to use:</strong> Click a website button above to open it, search for properties using your criteria (location, price, beds, etc.), then click "Scrape Visible Listings" to extract the data shown on the current page.
                     </div>
                 </div>
 
