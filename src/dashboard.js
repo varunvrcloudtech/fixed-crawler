@@ -762,68 +762,82 @@ async function loadChoices() {
 function displayChoices(items) {
     const container = document.getElementById('choicesContainer');
 
-    let html = '<div class="choices-grid">';
+    let html = `
+        <div class="choices-table-container">
+            <table class="choices-table">
+                <thead>
+                    <tr>
+                        <th>Location</th>
+                        <th>Property Type</th>
+                        <th>Price Range</th>
+                        <th>Details</th>
+                        <th>Distance From</th>
+                        <th>Added</th>
+                        <th>Notes</th>
+                        <th>Source</th>
+                        <th>Like</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
 
     items.forEach(item => {
         const date = new Date(item.created_at).toLocaleDateString();
+        const liked = item.liked || false;
+        const likeIcon = liked ? '❤️' : '🤍';
 
         html += `
-            <div class="choice-card">
-                <div class="choice-header">
-                    <h3>📍 ${escapeHtml(item.location)}</h3>
-                </div>
-                <div class="choice-details">
-                    <div class="choice-detail-row">
-                        <span class="choice-detail-label">Property Type:</span>
-                        <span class="choice-detail-value">${escapeHtml(item.property_type)}</span>
-                    </div>
-                    <div class="choice-detail-row">
-                        <span class="choice-detail-label">Price Range:</span>
-                        <span class="choice-detail-value">${escapeHtml(item.price_range)}</span>
-                    </div>
-                    ${item.distance_from ? `
-                        <div class="choice-detail-row">
-                            <span class="choice-detail-label">Distance From:</span>
-                            <span class="choice-detail-value">${escapeHtml(item.distance_from)}</span>
-                        </div>
-                    ` : ''}
-                    ${item.max_distance ? `
-                        <div class="choice-detail-row">
-                            <span class="choice-detail-label">Max Distance:</span>
-                            <span class="choice-detail-value">${escapeHtml(item.max_distance)} miles</span>
-                        </div>
-                    ` : ''}
-                    <div class="choice-detail-row">
-                        <span class="choice-detail-label">Added:</span>
-                        <span class="choice-detail-value">${date}</span>
-                    </div>
-                </div>
-                ${item.content_preview ? `
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 6px; margin: 10px 0; font-size: 13px; color: #555;">
-                        <strong>Details:</strong> ${escapeHtml(item.content_preview)}
-                    </div>
-                ` : ''}
-                ${item.source_url ? `
-                    <p style="font-size: 13px; color: #666; margin: 10px 0;">
-                        <strong>Source:</strong> <a href="${escapeHtml(item.source_url)}" target="_blank" style="color: #0f3460;">${escapeHtml(item.source_url.substring(0, 50))}...</a>
-                    </p>
-                ` : ''}
-                ${item.notes ? `
-                    <div class="choice-notes">
-                        <strong>Notes:</strong> ${escapeHtml(item.notes)}
-                    </div>
-                ` : ''}
-                <div class="choice-actions">
-                    <button class="btn-edit-choice" onclick="editChoiceNotes('${item.id}', '${escapeHtml(item.notes || '')}')">Edit Notes</button>
-                    <button class="btn-delete" onclick="deleteChoice('${item.id}')">Delete</button>
-                </div>
-            </div>
+            <tr>
+                <td><strong>${escapeHtml(item.location)}</strong></td>
+                <td>${escapeHtml(item.property_type)}</td>
+                <td style="font-weight: 600; color: #2e7d32;">${escapeHtml(item.price_range)}</td>
+                <td>${item.content_preview ? escapeHtml(item.content_preview) : '-'}</td>
+                <td>${item.distance_from ? escapeHtml(item.distance_from) + (item.max_distance ? ` (${item.max_distance} mi)` : '') : '-'}</td>
+                <td>${date}</td>
+                <td>
+                    ${item.notes ? `<span title="${escapeHtml(item.notes)}">${escapeHtml(item.notes.substring(0, 30))}${item.notes.length > 30 ? '...' : ''}</span>` : '-'}
+                    <button class="btn-edit-notes" onclick="editChoiceNotes('${item.id}', '${escapeHtml(item.notes || '')}')">✏️</button>
+                </td>
+                <td>
+                    ${item.source_url ? `<a href="${escapeHtml(item.source_url)}" target="_blank" class="source-link">🔗 View</a>` : '-'}
+                </td>
+                <td>
+                    <button class="btn-like ${liked ? 'liked' : ''}" onclick="toggleLike('${item.id}', ${liked})" title="${liked ? 'Unlike' : 'Like'}">
+                        ${likeIcon}
+                    </button>
+                </td>
+            </tr>
         `;
     });
 
-    html += '</div>';
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
     container.innerHTML = html;
 }
+
+window.toggleLike = async function(choiceId, currentLiked) {
+    try {
+        const { error } = await supabase
+            .from('real_estate_choices')
+            .update({ liked: !currentLiked })
+            .eq('id', choiceId);
+
+        if (error) {
+            console.error('Error toggling like:', error);
+            alert('Failed to update like status');
+            return;
+        }
+
+        await loadMyChoices();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update like status');
+    }
+};
 
 window.editChoiceNotes = async function(id, currentNotes) {
     const notes = prompt('Add or edit notes for this property:', currentNotes);

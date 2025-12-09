@@ -571,26 +571,88 @@ body {
     margin: 20px 0 10px;
 }
 
-.choices-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 20px;
+.choices-table-container {
     margin-top: 20px;
-}
-
-.choice-card {
+    overflow-x: auto;
     background: white;
-    border: 2px solid #e0e0e0;
     border-radius: 12px;
-    padding: 20px;
-    transition: all 0.3s;
-    position: relative;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.choice-card:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-    transform: translateY(-3px);
-    border-color: #0f3460;
+.choices-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.choices-table thead {
+    background: #0f3460;
+    color: white;
+}
+
+.choices-table th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.choices-table tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background 0.2s;
+}
+
+.choices-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.choices-table td {
+    padding: 12px;
+    vertical-align: middle;
+}
+
+.btn-edit-notes {
+    padding: 4px 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    margin-left: 8px;
+    transition: transform 0.2s;
+}
+
+.btn-edit-notes:hover {
+    transform: scale(1.2);
+}
+
+.btn-like {
+    padding: 6px 12px;
+    background: transparent;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 20px;
+    transition: all 0.2s;
+}
+
+.btn-like:hover {
+    transform: scale(1.1);
+    border-color: #ff4081;
+}
+
+.btn-like.liked {
+    border-color: #ff4081;
+    background: #fff0f5;
+}
+
+.source-link {
+    color: #0f3460;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.source-link:hover {
+    text-decoration: underline;
 }
 
 .choice-header {
